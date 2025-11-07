@@ -58,5 +58,5 @@ def save_essays(essays_data, output_path='data/raw/essays.json'):
     print(f"\nSaved {len(essays_data)} essays to {output_path}")
 
 if __name__ == "__main__":
-    essays = scrape_pg_essays(max_essays=40)
+    essays = scrape_pg_essays(max_essays=2)
     save_essays(essays)
