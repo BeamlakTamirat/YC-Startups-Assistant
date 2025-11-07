@@ -1,7 +1,8 @@
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.callbacks.base import BaseCallbackHandler
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 import config
 
 class ReasoningCallbackHandler(BaseCallbackHandler):
@@ -51,17 +52,16 @@ Instructions:
 
 Answer:"""
 
-        PROMPT = PromptTemplate(
-            template=prompt_template,
-            input_variables=["context", "question"]
-        )
+        prompt = ChatPromptTemplate.from_template(prompt_template)
         
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.retriever,
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": PROMPT}
+        def format_docs(docs):
+            return "\n\n".join(doc.page_content for doc in docs)
+        
+        self.qa_chain = (
+            {"context": self.retriever | format_docs, "question": RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
         )
     
     def get_reasoning_steps(self, query):
@@ -99,10 +99,11 @@ Answer:"""
     def query(self, question):
         reasoning_steps = self.get_reasoning_steps(question)
         
-        result = self.qa_chain.invoke({"query": question})
+        # Get source documents first
+        source_docs = self.retriever.invoke(question)
         
-        answer = result['result']
-        source_docs = result['source_documents']
+        # Run the chain
+        answer = self.qa_chain.invoke(question)
         
         sources = self.format_sources(source_docs)
         confidence = self.calculate_confidence(source_docs)
@@ -117,7 +118,7 @@ Answer:"""
     def stream_query(self, question, callback=None):
         reasoning_steps = self.get_reasoning_steps(question)
         
-        source_docs = self.retriever.get_relevant_documents(question)
+        source_docs = self.retriever.invoke(question)
         
         context = "\n\n".join([doc.page_content for doc in source_docs[:config.TOP_K_RESULTS]])
         

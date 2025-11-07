@@ -4,8 +4,8 @@ TOP_K_RESULTS = 4
 SIMILARITY_THRESHOLD = 0.7
 EMBEDDING_MODEL = "models/text-embedding-004"
 
-LLM_MODEL = "gemini-2.5-pro-latest"
-LLM_MODEL_FAST = "gemini-2.5-flash-latest"
+LLM_MODEL = "gemini-2.5-pro"
+LLM_MODEL_FAST = "gemini-2.5-flash-lite"
 
 TEMPERATURE = 0.7
 
