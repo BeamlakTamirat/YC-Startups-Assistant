@@ -1,0 +1,33 @@
+# API Keys and Environment
+.env
+*.env
+.streamlit/secrets.toml
+
+# Data
+data/raw/
+data/processed/
+*.faiss
+*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
