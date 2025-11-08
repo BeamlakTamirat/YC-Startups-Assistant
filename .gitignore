@@ -5,8 +5,6 @@
 
 # Data
 data/raw/
-*.faiss
-*.pkl
 
 # Python
 __pycache__/
