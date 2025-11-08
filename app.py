@@ -205,28 +205,46 @@ def main():
             st.markdown(prompt)
         
         with st.chat_message("assistant"):
-            with st.spinner("🤔 Thinking..."):
-                try:
-                    result = rag_engine.query(prompt)
-                    st.markdown(result['answer'])
-                    
-                    if result.get('sources'):
-                        st.markdown("**📚 Sources:**")
-                        for src in result['sources']:
-                            st.markdown(f"""<div class='source-box'><strong>{src['title']}</strong><br>
-                            <a href="{src['url']}" target="_blank">📖 Read essay →</a></div>""", unsafe_allow_html=True)
-                    
-                    if result.get('confidence'):
-                        st.markdown(f"<div class='confidence-badge'>⭐ Confidence: {result['confidence']:.0f}%</div>", unsafe_allow_html=True)
-                    
-                    st.session_state.messages.append({
-                        'role': 'assistant',
-                        'content': result['answer'],
-                        'sources': result.get('sources'),
-                        'confidence': result.get('confidence')
-                    })
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
+            thinking_placeholder = st.empty()
+            thinking_placeholder.markdown("🤔 **Thinking...**")
+            
+            try:
+                result = rag_engine.query(prompt)
+                thinking_placeholder.empty()
+                
+                # Stream the answer word by word
+                answer_placeholder = st.empty()
+                full_answer = ""
+                words = result['answer'].split()
+                
+                for i, word in enumerate(words):
+                    full_answer += word + " "
+                    answer_placeholder.markdown(full_answer + "▌")
+                    if i % 3 == 0:  # Update every 3 words for smooth effect
+                        import time
+                        time.sleep(0.05)
+                
+                answer_placeholder.markdown(result['answer'])
+                
+                if result.get('sources'):
+                    st.markdown("**📚 Sources:**")
+                    for src in result['sources']:
+                        st.markdown(f"""<div class='source-box'><strong>{src['title']}</strong><br>
+                        <a href="{src['url']}" target="_blank">📖 Read essay →</a></div>""", unsafe_allow_html=True)
+                
+                if result.get('confidence'):
+                    confidence_color = "🟢" if result['confidence'] > 85 else "🟡" if result['confidence'] > 70 else "🟠"
+                    st.markdown(f"<div class='confidence-badge'>{confidence_color} Confidence: {result['confidence']:.1f}%</div>", unsafe_allow_html=True)
+                
+                st.session_state.messages.append({
+                    'role': 'assistant',
+                    'content': result['answer'],
+                    'sources': result.get('sources'),
+                    'confidence': result.get('confidence')
+                })
+            except Exception as e:
+                thinking_placeholder.empty()
+                st.error(f"❌ Error: {e}")
 
 if __name__ == "__main__":
     main()

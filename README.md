@@ -320,10 +320,6 @@ Access at `http://localhost:8501`
 ---
 
 
-## 🤝 Contributing
-
-This is a learning project for the AAIDC program. Feedback and suggestions are welcome!
-
 
 ---
 

@@ -113,6 +113,47 @@ Answer:"""
         
         return sources
     
+    def generate_related_questions(self, original_question, source_docs):
+        question_lower = original_question.lower()
+        
+        # Topic-based related questions
+        if any(word in question_lower for word in ['idea', 'validate', 'product']):
+            return [
+                "How do I know if my idea is worth pursuing?",
+                "What's the fastest way to test my product hypothesis?",
+                "How do I find my target customers?"
+            ]
+        elif any(word in question_lower for word in ['co-founder', 'team', 'hire']):
+            return [
+                "What qualities make a great co-founder?",
+                "How do I split equity with co-founders?",
+                "When should I hire my first employee?"
+            ]
+        elif any(word in question_lower for word in ['funding', 'raise', 'investor', 'vc']):
+            return [
+                "How much should I raise in my seed round?",
+                "What do investors look for in a pitch?",
+                "Should I bootstrap or raise venture capital?"
+            ]
+        elif any(word in question_lower for word in ['user', 'customer', 'growth']):
+            return [
+                "How do I acquire users without spending money?",
+                "What's a good growth rate for an early startup?",
+                "How do I retain my first customers?"
+            ]
+        elif any(word in question_lower for word in ['product-market fit', 'pmf']):
+            return [
+                "How long does it take to find product-market fit?",
+                "What are the signs I've achieved PMF?",
+                "What should I do before finding PMF?"
+            ]
+        else:
+            return [
+                "What should I focus on in my first year?",
+                "How do I know if my startup is on the right track?",
+                "What are the most common startup mistakes?"
+            ]
+    
     def query(self, question):
         reasoning_steps = self.get_reasoning_steps(question)
         
@@ -124,12 +165,14 @@ Answer:"""
         
         sources = self.format_sources(source_docs)
         confidence = self.calculate_confidence(source_docs)
+        related_questions = self.generate_related_questions(question, source_docs)
         
         return {
             'answer': answer,
             'sources': sources,
             'confidence': confidence,
-            'reasoning_steps': reasoning_steps
+            'reasoning_steps': reasoning_steps,
+            'related_questions': related_questions
         }
     
     def stream_query(self, question, callback=None):
