@@ -129,10 +129,14 @@ def setup_sidebar():
         """)
 
 def load_rag_engine():
-    api_key = os.getenv('GOOGLE_API_KEY')
+    try:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+    except:
+        api_key = os.getenv('GOOGLE_API_KEY')
     
     if not api_key:
-        st.error("⚠️ GOOGLE_API_KEY not found in .env file")
+        st.error("⚠️ GOOGLE_API_KEY not found. Please configure it in Streamlit Cloud secrets.")
+        st.info("Local development: Add GOOGLE_API_KEY to your .env file")
         return None
     
     if st.session_state.rag_engine is None or st.session_state.get('last_model') != st.session_state.use_fast_model:
