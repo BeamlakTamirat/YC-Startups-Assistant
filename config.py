@@ -28,10 +28,12 @@ Answer style:
 """
 
 EXAMPLE_QUERIES = [
-    "How do I validate my startup idea before building?",
-    "What should I look for in a co-founder?",
-    "When is the right time to raise funding vs bootstrap?",
-    "How do I get my first 100 users?",
-    "What are signs of product-market fit?",
-    "How should I think about pricing my product?",
+    "🚀 How do I find product-market fit for my startup?",
+    "💡 What makes a great startup idea vs a bad one?",
+    "👥 Should I build alone or find a co-founder first?",
+    "💰 When should I raise VC funding vs bootstrap?",
+    "📈 How do I get my first 1,000 users without paid ads?",
+    "🎯 What should I focus on in the first 3 months?",
+    "💹 How do I know if my startup is growing fast enough?",
+    "🔥 What are the biggest mistakes first-time founders make?",
 ]
