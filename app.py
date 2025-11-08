@@ -110,10 +110,18 @@ def setup_sidebar():
             st.info("⚡ Gemini 2.5 Flash - Fast Responses")
         
         st.markdown("---")
-        st.subheader("💡 Example Questions")
+        st.subheader("💡 Try These Questions")
+        st.markdown("*Click any question to ask it*")
         for query in config.EXAMPLE_QUERIES:
             if st.button(query, key=query, use_container_width=True):
                 st.session_state.example_query = query
+        
+        st.markdown("---")
+        
+        if st.session_state.messages:
+            st.subheader("📊 Session Stats")
+            st.metric("Questions Asked", len([m for m in st.session_state.messages if m['role'] == 'user']))
+            st.metric("Knowledge Base", "100+ Essays")
         
         st.markdown("---")
         if st.button("🗑️ Clear Chat", use_container_width=True):
@@ -123,9 +131,10 @@ def setup_sidebar():
         st.markdown("---")
         st.markdown("""
         ### 📚 Knowledge Base
-        - 40+ Paul Graham Essays
+        - 200+ Paul Graham Essays
         - YC Startup Wisdom
         - Founder Best Practices
+        - Product-Market Fit Insights
         """)
 
 def load_rag_engine():
