@@ -1,56 +1,84 @@
 import streamlit as st
 from pathlib import Path
-import sys
+import os
+from dotenv import load_dotenv
 from data_loader import DataLoader
 from rag_engine import RAGEngine
 import config
+
+load_dotenv()
 
 st.set_page_config(
     page_title="YC Startup Assistant",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 def load_custom_css():
     st.markdown("""
     <style>
-    .main {
-        background-color: #ffffff;
-    }
-    .stButton>button {
-        background-color: #FF6600;
-        color: white;
-        border-radius: 5px;
-        border: none;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-    }
-    .stButton>button:hover {
-        background-color: #E55A00;
-    }
-    .source-box {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #FF6600;
-        margin: 0.5rem 0;
-    }
-    .reasoning-step {
-        color: #666;
-        font-size: 0.9rem;
-        padding: 0.3rem 0;
-    }
-    .confidence-score {
-        background-color: #FF6600;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 15px;
-        font-weight: 600;
-        display: inline-block;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * { font-family: 'Inter', sans-serif; }
+    
+    .main { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    
     h1 {
-        color: #FF6600;
+        background: linear-gradient(135deg, #FF6600 0%, #FF8C42 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 3rem;
+        font-weight: 700;
+        text-align: center;
+    }
+    
+    .stChatMessage {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stButton>button {
+        background: linear-gradient(135deg, #FF6600 0%, #FF8C42 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+    }
+    
+    .source-box {
+        background: #f8f9fa;
+        padding: 1.2rem;
+        border-radius: 12px;
+        border-left: 4px solid #FF6600;
+        margin: 0.8rem 0;
+    }
+    
+    .reasoning-step {
+        padding: 0.5rem;
+        margin: 0.3rem 0;
+        border-left: 3px solid #667eea;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .confidence-badge {
+        background: linear-gradient(135deg, #FF6600 0%, #FF8C42 100%);
+        color: white;
+        padding: 0.5rem 1.2rem;
+        border-radius: 20px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+        margin-top: 1rem;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -60,188 +88,132 @@ def initialize_session_state():
         st.session_state.messages = []
     if 'rag_engine' not in st.session_state:
         st.session_state.rag_engine = None
-    if 'vectorstore' not in st.session_state:
-        st.session_state.vectorstore = None
     if 'use_fast_model' not in st.session_state:
-        st.session_state.use_fast_model = False
+        st.session_state.use_fast_model = True
 
 def setup_sidebar():
     with st.sidebar:
         st.title("⚙️ Settings")
-        
-        api_key = st.text_input(
-            "Google API Key",
-            type="password",
-            help="Enter your Google API key to use the assistant"
-        )
-        
-        if api_key:
-            st.session_state.api_key = api_key
-        
         st.markdown("---")
         
-        st.subheader("🚀 Model Selection")
-        use_fast = st.toggle(
-            "Use Fast Mode (2.5 Flash)",
-            value=st.session_state.use_fast_model,
-            help="Toggle between Gemini 2.5 Pro (best quality) and 2.5 Flash (faster responses)"
+        st.subheader("🎯 Model Selection")
+        use_pro = st.toggle(
+            "Use Pro Mode",
+            value=not st.session_state.use_fast_model,
+            help="Toggle ON for Gemini 2.5 Pro (best quality) or OFF for Flash (faster)"
         )
-        if use_fast != st.session_state.use_fast_model:
-            st.session_state.use_fast_model = use_fast
-            st.session_state.rag_engine = None
+        st.session_state.use_fast_model = not use_pro
+        
+        if use_pro:
+            st.success("🚀 Gemini 2.5 Pro - Best Quality")
+        else:
+            st.info("⚡ Gemini 2.5 Flash - Fast Responses")
         
         st.markdown("---")
-        
         st.subheader("💡 Example Questions")
         for query in config.EXAMPLE_QUERIES:
             if st.button(query, key=query, use_container_width=True):
                 st.session_state.example_query = query
         
         st.markdown("---")
-        
-        if st.button("🗑️ Clear Conversation", use_container_width=True):
+        if st.button("🗑️ Clear Chat", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
         
         st.markdown("---")
         st.markdown("""
-        ### About
-        This assistant is trained on:
-        - Paul Graham's Essays
-        - Y Combinator Wisdom
-        - Startup Best Practices
-        
-        Built with Gemini 2.5 Pro/Flash (FREE)
-        LangChain & Streamlit
+        ### 📚 Knowledge Base
+        - 40+ Paul Graham Essays
+        - YC Startup Wisdom
+        - Founder Best Practices
         """)
 
-def load_rag_engine(api_key):
-    if st.session_state.rag_engine is None:
+def load_rag_engine():
+    api_key = os.getenv('GOOGLE_API_KEY')
+    
+    if not api_key:
+        st.error("⚠️ GOOGLE_API_KEY not found in .env file")
+        return None
+    
+    if st.session_state.rag_engine is None or st.session_state.get('last_model') != st.session_state.use_fast_model:
         vectorstore_path = 'data/processed/vectorstore'
         
         if not Path(vectorstore_path).exists():
-            st.error("⚠️ Knowledge base not found. Please run data setup first.")
-            st.info("Run: `python data_loader.py` to build the knowledge base")
+            st.error("⚠️ Knowledge base not found. Run: `python data_loader.py`")
             return None
         
-        with st.spinner("Loading knowledge base..."):
+        with st.spinner("🔄 Loading..."):
             try:
                 loader = DataLoader(api_key)
                 vectorstore = loader.load_vectorstore(vectorstore_path)
-                st.session_state.vectorstore = vectorstore
                 st.session_state.rag_engine = RAGEngine(
                     vectorstore, 
                     api_key, 
                     use_fast_model=st.session_state.use_fast_model
                 )
+                st.session_state.last_model = st.session_state.use_fast_model
                 return st.session_state.rag_engine
             except Exception as e:
-                st.error(f"Error loading knowledge base: {e}")
+                st.error(f"❌ Error: {e}")
                 return None
     
     return st.session_state.rag_engine
-
-def display_message(role, content, sources=None, confidence=None, reasoning=None):
-    with st.chat_message(role):
-        st.markdown(content)
-        
-        if reasoning:
-            with st.expander("💭 How I thought about this"):
-                for step in reasoning:
-                    st.markdown(f"<div class='reasoning-step'>{step}</div>", unsafe_allow_html=True)
-        
-        if sources:
-            st.markdown("**📚 Sources:**")
-            for source in sources:
-                st.markdown(f"""
-                <div class='source-box'>
-                    <strong>{source['title']}</strong><br>
-                    <a href="{source['url']}" target="_blank">Read full essay →</a>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        if confidence:
-            st.markdown(f"<span class='confidence-score'>⭐ Confidence: {confidence:.0f}%</span>", unsafe_allow_html=True)
 
 def main():
     load_custom_css()
     initialize_session_state()
     
-    st.title("🚀 YC Startups Assistant")
-    st.markdown("*Your AI advisor trained on Y Combinator wisdom*")
+    st.title("🚀 YC Startup Assistant")
+    st.markdown("<p style='text-align: center; color: #666; font-size: 1.1rem;'>Your AI-powered advisor trained on Y Combinator wisdom</p>", unsafe_allow_html=True)
     
     setup_sidebar()
     
-    if 'api_key' not in st.session_state or not st.session_state.api_key:
-        st.warning("👈 Please enter your Google API key in the sidebar to get started")
-        st.info("Don't have an API key? Get one FREE at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)")
-        return
-    
-    rag_engine = load_rag_engine(st.session_state.api_key)
-    
+    rag_engine = load_rag_engine()
     if not rag_engine:
         return
     
-    for message in st.session_state.messages:
-        display_message(
-            message['role'],
-            message['content'],
-            message.get('sources'),
-            message.get('confidence'),
-            message.get('reasoning')
-        )
+    for msg in st.session_state.messages:
+        with st.chat_message(msg['role']):
+            st.markdown(msg['content'])
+            if msg.get('sources'):
+                st.markdown("**📚 Sources:**")
+                for src in msg['sources']:
+                    st.markdown(f"""<div class='source-box'><strong>{src['title']}</strong><br>
+                    <a href="{src['url']}" target="_blank">📖 Read essay →</a></div>""", unsafe_allow_html=True)
+            if msg.get('confidence'):
+                st.markdown(f"<div class='confidence-badge'>⭐ {msg['confidence']:.0f}%</div>", unsafe_allow_html=True)
     
-    if 'example_query' in st.session_state:
-        prompt = st.session_state.example_query
-        del st.session_state.example_query
-    else:
-        prompt = st.chat_input("Ask me anything about startups...")
+    prompt = st.session_state.pop('example_query', None) or st.chat_input("💬 Ask anything about startups...")
     
     if prompt:
-        st.session_state.messages.append({
-            'role': 'user',
-            'content': prompt
-        })
+        st.session_state.messages.append({'role': 'user', 'content': prompt})
         
-        display_message('user', prompt)
+        with st.chat_message("user"):
+            st.markdown(prompt)
         
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+            with st.spinner("🤔 Thinking..."):
                 try:
                     result = rag_engine.query(prompt)
-                    
                     st.markdown(result['answer'])
                     
-                    if result['reasoning_steps']:
-                        with st.expander("💭 How I thought about this"):
-                            for step in result['reasoning_steps']:
-                                st.markdown(f"<div class='reasoning-step'>{step}</div>", unsafe_allow_html=True)
-                    
-                    if result['sources']:
+                    if result.get('sources'):
                         st.markdown("**📚 Sources:**")
-                        for source in result['sources']:
-                            st.markdown(f"""
-                            <div class='source-box'>
-                                <strong>{source['title']}</strong><br>
-                                <a href="{source['url']}" target="_blank">Read full essay →</a>
-                            </div>
-                            """, unsafe_allow_html=True)
+                        for src in result['sources']:
+                            st.markdown(f"""<div class='source-box'><strong>{src['title']}</strong><br>
+                            <a href="{src['url']}" target="_blank">📖 Read essay →</a></div>""", unsafe_allow_html=True)
                     
-                    if result['confidence']:
-                        st.markdown(f"<span class='confidence-score'>⭐ Confidence: {result['confidence']:.0f}%</span>", unsafe_allow_html=True)
+                    if result.get('confidence'):
+                        st.markdown(f"<div class='confidence-badge'>⭐ Confidence: {result['confidence']:.0f}%</div>", unsafe_allow_html=True)
                     
                     st.session_state.messages.append({
                         'role': 'assistant',
                         'content': result['answer'],
-                        'sources': result['sources'],
-                        'confidence': result['confidence'],
-                        'reasoning': result['reasoning_steps']
+                        'sources': result.get('sources'),
+                        'confidence': result.get('confidence')
                     })
-                
                 except Exception as e:
-                    st.error(f"Error: {e}")
-                    st.info("Please check your API key and try again.")
+                    st.error(f"❌ Error: {e}")
 
 if __name__ == "__main__":
     main()
-    
